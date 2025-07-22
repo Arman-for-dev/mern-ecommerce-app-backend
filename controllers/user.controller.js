@@ -1,5 +1,5 @@
 import Users from "../models/user.js";
-import { isMatch, validateEmail, validatePassword } from "../utils/helpers.js";
+import { createRefreshToken, isMatch, validateEmail, validatePassword } from "../utils/helpers.js";
 import bcrypt from "bcrypt";
 
 export const signUp = async (req, res) =>{
@@ -54,6 +54,49 @@ export const signUp = async (req, res) =>{
         });
 
         } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
+// User Sign In
+export const signIn = async (req, res) =>{
+    try {
+        const {email, password} = req.body;
+        const user = await Users.findOne({email});
+        if(!email || !password) return res.status(400).json({message: "Please fill the all field!"});
+        if(!user) return res.status(400).json({message: "Invalid Credentials"});
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if(!isMatch) return res.status(400).json({message: "Invalid Credentials"});
+        const refresh_token = createRefreshToken({id: user._id});
+        const expiry = 24 * 60 * 60 * 1000 // 1 day
+        res.cookie('refreshtoken', refresh_token, {
+            httpOnly: true,
+            path: '/api/user/refresh_token',
+            maxAge: expiry,
+            expires: new Date(Date.now() + expiry)
+        });
+        res.json({
+            message: "Sign In Successfully!",
+            user:{
+                id: user._id,
+                name: user.name,
+                email: user.email
+            }
+        })
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
+//User info
+export const userInformation = async (req, res) =>{
+    try {
+        const userId = req.user.id;
+        const userInfo = await Users.findById(userId).select("-password");
+
+        res.json(userInfo);
+    } catch (error) {
         return res.status(500).json({ message: error.message });
     }
 }

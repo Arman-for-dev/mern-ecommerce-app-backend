@@ -1,4 +1,8 @@
+import jwt from "jsonwebtoken";
 
+export function createRefreshToken(payload){
+    return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {expiresIn: '1d'});
+}
 
 export function isMatch(password, confirmPassword){
     if(password === confirmPassword) return true;
@@ -15,3 +19,4 @@ export function validatePassword(password) {
     const re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/
     return re.test(password)
 }
+
